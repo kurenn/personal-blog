@@ -66,6 +66,11 @@ const code = {
       textTransform: `uppercase`,
       top: 0,
     },
+    'pre[class~="language-ruby"]:before': {
+      content: `"ruby"`,
+      background: `#f7df1e`,
+      color: `black`,
+    },
     'pre[class~="language-javascript"]:before, pre[class~="language-js"]:before': {
       content: `"js"`,
       background: `#f7df1e`,

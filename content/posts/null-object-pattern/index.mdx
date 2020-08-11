@@ -1,0 +1,139 @@
+---
+title: Null Object Pattern
+date: 2020-08-13
+description: Implicaciones y ventajas sobre usar Null Object Pattern para mejorar el manejo de valores nulos en nuestro código
+tags:
+  - Patrón de diseño
+  - Refactorización
+banner: ./empty-seats.jpeg
+---
+
+---
+
+I love patterns in software, they are a good and consistent way to clean up your code, make it more maintainable and easier to test.
+Recently I have been reading/watching a lot on the subject in an effort to improve my code quality, but also transfer all that knowledge to my team mates.
+
+---
+
+Everytime I want to share a piece of knowledge with the team, I either write a blog post or make it an internal challenge like the following:
+Suppose you have a ruby class which receives a user instance and gets the name and email from it, in case the user is not nil, otherwise it just fallbacks to some default values.
+
+```ruby
+class JobTitle 
+  def initialize(user) 
+   @user = user 
+  end 
+
+  def user_name 
+   if @user 
+    @user.name 
+   else 
+    'no name' 
+   end 
+  end 
+
+  def user_email 
+   if @user 
+     user.email 
+   else 
+    'no email' 
+   end 
+ end 
+
+end
+```
+
+As you can see there is a lot of duplication, and it can grow as we need more information from the user.
+A possible solution would be to add some metaprogramming and have an implementation like:
+
+```ruby
+%w{ name email }.each do |user_attr| 
+  define_method "user_#{user_attr}" do 
+    if @user 
+     @user.send(user_attr) 
+    else 
+     "no #{user_attr}" 
+    end 
+  end 
+end
+```
+
+And although it is not a bad solution, it may get useless really fast. Let's say we need to add a method to the JobTitle class that is in charge of generating a PDF file.
+
+```ruby
+class JobTitle 
+. 
+. 
+. 
+ def generate_cv(format: "pdf") 
+  @user.generate_cv(format) if @user 
+ end 
+end
+```
+
+The implementation with metaprogramming just does not apply in here anymore, but we still are checking wheter the @user is nil or not.
+The challenge in here is to remove the if statements that are checking is the @user variable is not nil.
+This is a very common problem which can be solved really nice and smooth. But I'll let you think about it for just a sec.
+
+
+---
+
+### Solution
+
+In order to solve this problem and keep sanity on our code, I found out a pattern which turns out to be really helpful, the Null Object Pattern, which is few words is an object that provides some default behavior.
+We need to remove the if statements from the JobTitle class and make it look something like:
+
+```ruby
+class JobTitle 
+  def initialize(user) 
+    @user = user 
+  end 
+  def user_name 
+    @user.name 
+  end 
+  def user_email 
+    @user.email 
+  end 
+  def generate_cv(format: "pdf") 
+   @user.generate_cv(format) 
+  end 
+end
+```
+
+As you can see now we are just sending messages to the user object, but we have not provide that default behavior we want to preserve in case the @user variable is nil.
+The answer is to add a new class called NilUser and add the corresponding behavior:
+
+```ruby
+class NilUser 
+ def user_name 
+  'no name' 
+ end 
+ def user_email 
+  'no email' 
+ end 
+ def generate_cv(format: "pdf") 
+ end 
+end
+```
+
+And then just update the JobTitle class:
+
+```ruby
+class JobTitle 
+ def initialize(user = NilUser.new) 
+  @user = user 
+ end 
+ . 
+ . 
+ . 
+end
+```
+
+So from now on if the user argument is nil we instead instantiate a NilUser object with some default behavior.
+
+---
+
+### Conclusion
+
+When I found out about this, it just blew my mind. I'm definitely going to start using it wherever it applies.
+I also recommend you to go and check out a talk from Sandi Metz about this called Nothing is Something
