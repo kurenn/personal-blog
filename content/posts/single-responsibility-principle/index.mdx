@@ -1,0 +1,87 @@
+---
+title: Principio de Responsabilidad Única
+date: 2020-08-14
+description: Implementación en Ruby sobre el principio de responsabilidad única
+tags:
+  - Refactor
+  - SOLID
+---
+
+Me gustaría comenzar con la definición traída desde [Wikipedia](https://es.wikipedia.org/wiki/Principio_de_responsabilidad_%C3%BAnica)
+
+> El principio de responsabilidad única o SRP (siglas del inglés (Single Responsibility Principle) en ingeniería de software establece que cada módulo o clase debe tener responsabilidad sobre una sola parte de la funcionalidad proporcionada por el software y esta responsabilidad debe estar encapsulada en su totalidad por la clase.
+
+Aunque parece una idea muy sencilla, puede resultar confuso para algunos desarrolladores, principalmente con la definición de **responsabilidad**, ya que en muchas de las ocasiones
+es mucho "rápido" agregar un método con unas cuantas líneas en lugar de toda una clase dando como resultado objetos con muchas responsabilidades o conocimiento en su definición.
+
+Identificar este principio es una habilidad que se obtiene con el tiempo y su implementación. No tiene que ser perfecto al inicio, pero si poco a poco nos aventuramos
+a usarlo, este se volverá mas fácil de reconocer y como consecuencia, de aplicarlo.
+
+Si pudiera compartir un consejo breve para identificar que estamos rompiendo dicho principio, sería el de contar las líneas de código de la clase en cuestión.
+
+Asimismo creo que la mejor forma de aprender es haciendo y viendo ejemplos los mas cercanos a la realidad, aunque no siempre sea sencillo.
+
+#### Ejemplo
+
+Contamos con una clase de tipo servicio - `ZipCodeService` - que ejecuta peticiones a una API externa, en este caso [Sepomex](http://sepomex.icalialabs.com/api/v1/zip_codes). Así mismo
+una que representa el comportamiento de un código postal, por mas simple que llegue a ser.
+
+**ZipCodeService**
+
+```ruby
+# A class should have only a single responsibility. - Wikipedia
+# A class should have only one reason to change. - Robert C. Martin aka Uncle Bob
+
+require 'net/http'
+require 'json'
+
+class ZipCodeService
+  def initialize(environment = 'development')
+    @env = environment
+  end
+
+  def zip_codes
+    url = 'http://sepomex.icalialabs.com/api/v1/zip_codes'
+    url = 'https://myreal.server.com' if env == 'production'
+
+    puts "[ZipCodeCollection] GET #{url}"
+    response = Net::HTTP.get_response(URI(url))
+
+    return [] if response.code != '200'
+
+    zip_codes = JSON.parse(response.body)['zip_codes']
+    zip_codes.map do |params|
+      ZipCode.new(
+        id: params['id'],
+        code: params['d_codigo'],
+        city: params['d_ciudad'],
+        state: params['d_estado']
+      )
+    end
+  end
+
+  private
+
+  attr_reader :env
+end
+```
+
+```ruby
+class ZipCode
+  attr_reader :id, :code, :city, :state
+
+  def initialize(id:, code:, city:, state:)
+    @id = id
+    @code = code 
+    @city = city
+    @state = state
+  end
+
+  def to_s
+    "#{id} #{city}"
+  end
+end
+
+zip_code_service = ZipCodeService.new
+puts zip_code_service.zip_codes
+```
